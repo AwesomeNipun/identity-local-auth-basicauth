@@ -130,7 +130,7 @@ public class BasicAuthenticator extends AbstractApplicationAuthenticator
             throws AuthenticationFailedException, LogoutFailedException {
 
         if (isURLContainSensitiveData(request, response, context)) {
-           return AuthenticatorFlowStatus.INCOMPLETE;
+            return AuthenticatorFlowStatus.INCOMPLETE;
         }
         Cookie autoLoginCookie = AutoLoginUtilities.getAutoLoginCookie(request.getCookies());
 
@@ -169,7 +169,7 @@ public class BasicAuthenticator extends AbstractApplicationAuthenticator
     }
 
     protected AuthenticatorFlowStatus executeAutoLoginFlow(HttpServletRequest request, HttpServletResponse response,
-                                                         AuthenticationContext context, Cookie autoLoginCookie)
+                                                           AuthenticationContext context, Cookie autoLoginCookie)
             throws AuthenticationFailedException {
 
         String decodedValue = new String(Base64.getDecoder().decode(autoLoginCookie.getValue()));
@@ -646,27 +646,27 @@ public class BasicAuthenticator extends AbstractApplicationAuthenticator
                 if (ERROR_CODE_FEATURE_NOT_ENABLED.getCode().equals(configException.getErrorCode())) {
                     if (log.isDebugEnabled()) {
                         log.debug(String.format("%s Therefore using the default configuration value: %s for the " +
-                                "attribute: %s", ERROR_CODE_FEATURE_NOT_ENABLED.getMessage(), showPendingUserInfo,
+                                        "attribute: %s", ERROR_CODE_FEATURE_NOT_ENABLED.getMessage(), showPendingUserInfo,
                                 PENDING_USER_INFORMATION_ATTRIBUTE_NAME_CONFIG));
                     }
                 } else if (ERROR_CODE_ATTRIBUTE_DOES_NOT_EXISTS.getCode().equals(configException.getErrorCode())) {
                     if (log.isDebugEnabled()) {
                         log.debug(String.format("%s attribute doesn't exist for the tenant: %s. Therefore using the " +
-                                "default configuration value: %s for the attribute: %s",
+                                        "default configuration value: %s for the attribute: %s",
                                 PENDING_USER_INFORMATION_ATTRIBUTE_NAME_CONFIG, requestTenantDomain,
                                 showPendingUserInfo, PENDING_USER_INFORMATION_ATTRIBUTE_NAME_CONFIG));
                     }
                 } else if (ERROR_CODE_RESOURCE_TYPE_DOES_NOT_EXISTS.getCode().equals(configException.getErrorCode())) {
                     if (log.isDebugEnabled()) {
                         log.debug(String.format("%s resource type doesn't exist for the tenant: %s. Therefore using " +
-                                "the default configuration value: %s for the attribute: %s",
+                                        "the default configuration value: %s for the attribute: %s",
                                 RESOURCE_TYPE_NAME_CONFIG, requestTenantDomain, showPendingUserInfo,
                                 PENDING_USER_INFORMATION_ATTRIBUTE_NAME_CONFIG));
                     }
                 } else if (ERROR_CODE_RESOURCE_DOES_NOT_EXISTS.getCode().equals(configException.getErrorCode())) {
                     if (log.isDebugEnabled()) {
                         log.debug(String.format("%s resource doesn't exist for the tenant: %s. Therefore using the " +
-                                "default configuration value: %s for the attribute: %s", RESOURCE_NAME_CONFIG,
+                                        "default configuration value: %s for the attribute: %s", RESOURCE_NAME_CONFIG,
                                 requestTenantDomain, showPendingUserInfo,
                                 PENDING_USER_INFORMATION_ATTRIBUTE_NAME_CONFIG));
                     }
@@ -790,14 +790,11 @@ public class BasicAuthenticator extends AbstractApplicationAuthenticator
         Property[] connectorConfigs;
         Properties captchaConfigs = getCaptchaConfigs();
 
-        boolean reCaptchaEnabled = Boolean.parseBoolean(captchaConfigs.getProperty(CaptchaConstants.RE_CAPTCHA_ENABLED));
-        boolean reCaptchaEnterpriseEnabled = Boolean.parseBoolean(captchaConfigs.getProperty(
-                CaptchaConstants.RE_CAPTCHA_ENTERPRISE_ENABLED));
+        // In the captcha params, reCaptchaEnabled and the reCaptchaType are sent.
+        if (captchaConfigs != null && !captchaConfigs.isEmpty() &&
+                Boolean.parseBoolean(captchaConfigs.getProperty(CaptchaConstants.RE_CAPTCHA_ENABLED))) {
 
-        // In the captcha params, boolean values for reCaptcha and reCaptchaEnterprise are sent.
-        // Note : both cannot be true at the same time.
-        if (captchaConfigs != null && !captchaConfigs.isEmpty() && (reCaptchaEnabled || reCaptchaEnterpriseEnabled)) {
-
+            String reCaptchaType = captchaConfigs.getProperty(CaptchaConstants.RE_CAPTCHA_TYPE);
             boolean forcefullyEnabledRecaptchaForAllTenants = Boolean.parseBoolean(captchaConfigs.getProperty(
                     CaptchaConstants.FORCEFULLY_ENABLED_RECAPTCHA_FOR_ALL_TENANTS));
             try {
@@ -809,9 +806,8 @@ public class BasicAuthenticator extends AbstractApplicationAuthenticator
                         // SSO Login Captcha Config
                         if (Boolean.parseBoolean(connectorConfig.getValue()) ||
                                 forcefullyEnabledRecaptchaForAllTenants) {
-                            captchaParams = BasicAuthenticatorConstants.RECAPTCHA_PARAM + reCaptchaEnabled;
-                            captchaParams += BasicAuthenticatorConstants.RECAPTCHA_ENTERPRISE_PARAM +
-                                    reCaptchaEnterpriseEnabled;
+                            captchaParams = BasicAuthenticatorConstants.RECAPTCHA_PARAM + "true";
+                            captchaParams += BasicAuthenticatorConstants.RECAPTCHA_TYPE_PARAM + reCaptchaType;
                         } else {
                             if (log.isDebugEnabled()) {
                                 log.debug("Enforcing recaptcha for SSO Login is not enabled.");
@@ -861,9 +857,8 @@ public class BasicAuthenticator extends AbstractApplicationAuthenticator
                             log.debug("Number of failed attempts is higher than max failed login" +
                                     "attempts before reCaptcha. Recaptcha will be enforced.");
                         }
-                        captchaParams += BasicAuthenticatorConstants.RECAPTCHA_PARAM + reCaptchaEnabled;
-                        captchaParams += BasicAuthenticatorConstants.RECAPTCHA_ENTERPRISE_PARAM +
-                                reCaptchaEnterpriseEnabled;
+                        captchaParams += BasicAuthenticatorConstants.RECAPTCHA_PARAM + "true";
+                        captchaParams += BasicAuthenticatorConstants.RECAPTCHA_TYPE_PARAM + reCaptchaType;
                     }
                 }
 
@@ -889,33 +884,23 @@ public class BasicAuthenticator extends AbstractApplicationAuthenticator
 
         Properties properties = BasicAuthenticatorDataHolder.getInstance().getRecaptchaConfigs();
 
-        boolean reCaptchaEnabled = Boolean.parseBoolean(properties.getProperty(CaptchaConstants.RE_CAPTCHA_ENABLED));
-        boolean reCaptchaEnterpriseEnabled = Boolean.parseBoolean(properties.getProperty(CaptchaConstants
-                .RE_CAPTCHA_ENTERPRISE_ENABLED));
+        if (properties != null && !properties.isEmpty() &&
+                Boolean.parseBoolean(properties.getProperty(CaptchaConstants.RE_CAPTCHA_ENABLED))) {
 
-        if (properties != null && !properties.isEmpty()) {
-            if (reCaptchaEnabled || reCaptchaEnterpriseEnabled) {
-                if (StringUtils.isBlank(properties.getProperty(CaptchaConstants.RE_CAPTCHA_SITE_KEY)) ||
-                        StringUtils.isBlank(properties.getProperty(CaptchaConstants.RE_CAPTCHA_API_URL)) ||
-                        StringUtils.isBlank(properties.getProperty(CaptchaConstants.RE_CAPTCHA_SECRET_KEY)) ||
-                        StringUtils.isBlank(properties.getProperty(CaptchaConstants.RE_CAPTCHA_VERIFY_URL))) {
+            if (StringUtils.isBlank(properties.getProperty(CaptchaConstants.RE_CAPTCHA_SITE_KEY)) ||
+                    StringUtils.isBlank(properties.getProperty(CaptchaConstants.RE_CAPTCHA_API_URL)) ||
+                    StringUtils.isBlank(properties.getProperty(CaptchaConstants.RE_CAPTCHA_SECRET_KEY)) ||
+                    StringUtils.isBlank(properties.getProperty(CaptchaConstants.RE_CAPTCHA_VERIFY_URL)) ||
+                    StringUtils.isBlank(properties.getProperty(CaptchaConstants.RE_CAPTCHA_TYPE)) ||
+                    (properties.getProperty(CaptchaConstants.RE_CAPTCHA_TYPE).
+                            equals(CaptchaConstants.RE_CAPTCHA_TYPE_ENTERPRISE) &&
+                            StringUtils.isBlank(properties.getProperty(CaptchaConstants.RE_CAPTCHA_PROJECT_ID)))) {
 
-                    if (log.isDebugEnabled()) {
-                        log.debug("Empty values found for the captcha properties in the file " + CaptchaConstants
-                                .CAPTCHA_CONFIG_FILE_NAME + ".");
-                    }
-                    properties.clear();
+                if (log.isDebugEnabled()) {
+                    log.debug("Empty values found for the captcha properties in the file " + CaptchaConstants
+                            .CAPTCHA_CONFIG_FILE_NAME + ".");
                 }
-                if (reCaptchaEnterpriseEnabled) {
-                    if (StringUtils.isBlank(properties.getProperty(CaptchaConstants.RE_CAPTCHA_PROJECT_ID))) {
-
-                        if (log.isDebugEnabled()) {
-                            log.debug("Empty values found for the captcha properties in the file " + CaptchaConstants
-                                    .CAPTCHA_CONFIG_FILE_NAME + ".");
-                        }
-                        properties.clear();
-                    }
-                }
+                properties.clear();
             }
         }
         return properties;
